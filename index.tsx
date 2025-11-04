@@ -1140,7 +1140,6 @@
             // Clean up all triggers once shown
             document.removeEventListener('mouseout', handleMouseOut);
             window.removeEventListener('scroll', handleScroll);
-            clearTimeout(timer);
         };
 
         const hideModal = () => {
@@ -1160,8 +1159,6 @@
                 showModal();
             }
         };
-
-        const timer = setTimeout(showModal, 10000);
 
         // Add triggers
         document.addEventListener('mouseout', handleMouseOut);
