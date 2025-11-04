@@ -34,21 +34,48 @@
     };
 
     /**
-     * Converts a file to a Base64 encoded string.
+     * Converts a file to a Base64 encoded string, resizing and compressing it first.
+     * This is crucial to prevent "Failed to fetch" errors when sending large image
+     * data to Google Apps Script, which has payload size limits.
      * @param file The file to convert.
-     * @returns A promise that resolves with the Base64 string (without the data URL prefix).
+     * @returns A promise that resolves with the Base64 string of the processed JPEG image.
      */
     const fileToBase64 = (file: File): Promise<string> => {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.readAsDataURL(file);
-            reader.onload = () => {
-                const result = reader.result as string;
-                // result is "data:image/jpeg;base64,LzlqLzRBQ...". We need to strip the prefix.
-                const base64 = result.split(',')[1];
-                resolve(base64);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target?.result as string;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const maxWidth = 800; // Max width for the resized image
+                    let { width, height } = img;
+
+                    if (width > maxWidth) {
+                        const ratio = maxWidth / width;
+                        width = maxWidth;
+                        height = height * ratio;
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) {
+                        return reject(new Error('Could not get canvas context'));
+                    }
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    // Get the data URL for the resized image as a compressed JPEG
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                    
+                    // Strip the prefix "data:image/jpeg;base64,"
+                    const base64 = dataUrl.split(',')[1];
+                    resolve(base64);
+                };
+                img.onerror = (error) => reject(error);
             };
-            reader.onerror = error => reject(error);
+            reader.onerror = (error) => reject(error);
         });
     };
 
@@ -1024,10 +1051,15 @@
                 
                 try {
                     if (file) {
-                        // Convert file to base64 and add to form data for the Apps Script
+                        // Resize, compress, and convert file to base64 to prevent fetch errors
                         const base64String = await fileToBase64(file);
-                        sheetFormData.append('headshot_filename', file.name);
-                        sheetFormData.append('headshot_mimetype', file.type);
+                        
+                        // Since we convert to JPEG, the mimetype and filename should be updated for the script
+                        const originalFilename = file.name.substring(0, file.name.lastIndexOf('.') > 0 ? file.name.lastIndexOf('.') : file.name.length);
+                        const newFilename = `${originalFilename}.jpg`;
+
+                        sheetFormData.append('headshot_filename', newFilename);
+                        sheetFormData.append('headshot_mimetype', 'image/jpeg');
                         sheetFormData.append('headshot_base64', base64String);
                     }
                     // The original file input is not needed by the script
