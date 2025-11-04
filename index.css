@@ -2686,6 +2686,7 @@ a.contact-email:hover {
         border-radius: 0;
         border-top: 1px solid var(--border-color);
         min-width: 100%;
+        margin-left: 150px;
         padding: 0;
         margin: 0;
         display: none;
