@@ -33,18 +33,57 @@
         }
     };
 
-    const fileToBase64 = (file: File): Promise<string> => 
-        new Promise((resolve, reject) => {
+    /**
+     * Resizes an image file, converts it to a JPEG data URL, and wraps it
+     * in a Google Sheets IMAGE formula. This keeps the data small enough for a sheet cell.
+     * @param file The image file to process.
+     * @param maxSize The maximum width or height of the resized image.
+     * @returns A promise that resolves with the Google Sheets formula string.
+     */
+    const imageToSheetFormula = (file: File, maxSize: number = 400): Promise<string> => {
+        return new Promise((resolve, reject) => {
             const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = () => {
-                const result = reader.result as string;
-                // result is "data:image/jpeg;base64,LzlqLzRBQ...". We want to strip the prefix.
-                const base64String = result.split(',')[1];
-                resolve(base64String);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > maxSize) {
+                            height *= maxSize / width;
+                            width = maxSize;
+                        }
+                    } else {
+                        if (height > maxSize) {
+                            width *= maxSize / height;
+                            height = maxSize;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) {
+                        return reject(new Error('Could not get canvas context'));
+                    }
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // Get data URL as JPEG for better compression
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.9); // 90% quality
+                    
+                    // Format for Google Sheets
+                    const formula = `=IMAGE("${dataUrl}")`;
+                    resolve(formula);
+                };
+                img.onerror = reject;
+                img.src = event.target?.result as string;
             };
-            reader.onerror = error => reject(error);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
         });
+    };
 
     // --- Universal Real-Time Validator ---
     const validateField = (field: HTMLElement): boolean => {
@@ -1000,11 +1039,13 @@
                 // =========================================================================================
                 // --- ROBUST GOOGLE SHEETS INTEGRATION FOR SPEAKERS ---
                 // =========================================================================================
-                // !! CRITICAL INSTRUCTIONS !!
+                // !! CRITICAL UPDATE FOR IMAGE UPLOAD !!
                 // 1. In your Google Sheet, rename the sheet tab to "SpeakerRegistrations".
-                // 2. Ensure the headers in the first row are exactly as follows (order matters):
-                //    Timestamp, form_source, name, job_title_organization, email, phone, linkedin_website, country, session-day1, session-day2, why_speak, bio, headshot_filename, headshot_mimetype, headshot_base64, past_experience, consent-promotional, consent-recording
-                // 3. Deploy/re-deploy your Apps Script with "Anyone" access and paste the new URL below.
+                // 2. IMPORTANT: You must replace the three headshot columns (`headshot_filename`, `headshot_mimetype`, `headshot_base64`)
+                //    with a single new column named `headshot_image`.
+                // 3. The headers in the first row should be exactly as follows (order matters):
+                //    Timestamp, form_source, name, job_title_organization, email, phone, linkedin_website, country, session-day1, session-day2, why_speak, bio, headshot_image, past_experience, consent-promotional, consent-recording
+                // 4. Deploy/re-deploy your Apps Script with "Anyone" access and paste the new URL below.
                 // =========================================================================================
                 const googleSheetWebAppUrl = 'https://script.google.com/macros/s/AKfycbzaHqJGQqN1b3_EXy2TPKf4B2ACcVEwo-OmxribSVw0UkpTvR1kAnsbWOPW39myS9cN/exec';
 
@@ -1013,12 +1054,15 @@
                 
                 try {
                     if (file) {
-                        const base64String = await fileToBase64(file);
-                        sheetFormData.append('headshot_filename', file.name);
-                        sheetFormData.append('headshot_mimetype', file.type);
-                        sheetFormData.append('headshot_base64', base64String);
+                        // New: Resize image and create Google Sheet formula
+                        const imageFormula = await imageToSheetFormula(file);
+                        sheetFormData.append('headshot_image', imageFormula);
                     }
-                    sheetFormData.delete('headshot_upload'); // Remove the file object before sending
+                    // Clean up old/unnecessary fields before sending
+                    sheetFormData.delete('headshot_upload');
+                    sheetFormData.delete('headshot_filename');
+                    sheetFormData.delete('headshot_mimetype');
+                    sheetFormData.delete('headshot_base64');
 
                     const response = await fetch(googleSheetWebAppUrl, {
                         method: 'POST',
