@@ -1,5 +1,6 @@
 
 
+
     declare var Panzoom: any;
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -511,7 +512,7 @@
                     alert('Sorry, there was a problem with your inquiry. Please check your network connection and try again. Error: ' + (error as Error).message);
                     if (submitButton) {
                         submitButton.disabled = false;
-                        submitButton.textContent = 'Submit Inquiry & Get Deck';
+                        submitButton.textContent = 'Submit Inquiry';
                     }
                 }
             } else {
