@@ -1,6 +1,3 @@
-
-
-
     declare var Panzoom: any;
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -830,9 +827,18 @@
         const fileUploadText = form.querySelector('.file-upload-text');
 
         headshotInput?.addEventListener('change', () => {
-             if (headshotInput.files && headshotInput.files.length > 0 && fileUploadText) {
-                fileUploadText.textContent = headshotInput.files[0].name;
-                clearError(headshotInput);
+            if (headshotInput.files && headshotInput.files.length > 0 && fileUploadText) {
+                const file = headshotInput.files[0];
+                const MAX_SIZE_MB = 5;
+                const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
+
+                if (file.size > MAX_SIZE_BYTES) {
+                    showError(headshotInput, `File size cannot exceed ${MAX_SIZE_MB}MB.`);
+                    fileUploadText.textContent = `File too large (max ${MAX_SIZE_MB}MB)`;
+                } else {
+                    fileUploadText.textContent = file.name;
+                    clearError(headshotInput);
+                }
             } else if (fileUploadText) {
                 fileUploadText.textContent = 'Choose a file...';
             }
@@ -851,11 +857,22 @@
                 if(day2Container) clearError(day2Container);
             }
             
-            if (headshotInput?.files?.length === 0) {
-                showError(headshotInput, 'A professional headshot is required.');
-                allValid = false;
-            } else if(headshotInput) {
-                clearError(headshotInput);
+            if (headshotInput) {
+                if (!headshotInput.files || headshotInput.files.length === 0) {
+                    showError(headshotInput, 'A professional headshot is required.');
+                    allValid = false;
+                } else {
+                    const file = headshotInput.files[0];
+                    const MAX_SIZE_MB = 5;
+                    const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
+
+                    if (file.size > MAX_SIZE_BYTES) {
+                        showError(headshotInput, `File size cannot exceed ${MAX_SIZE_MB}MB.`);
+                        allValid = false;
+                    } else {
+                        clearError(headshotInput);
+                    }
+                }
             }
 
             const promoChecked = consentPromoGroup?.querySelector('input[type="radio"]:checked');
