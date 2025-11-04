@@ -892,87 +892,22 @@
         const consentPromoGroup = document.getElementById('consent-promotional-group');
         const consentRecordGroup = document.getElementById('consent-recording-group');
         
-        // --- New File Upload Modal Logic ---
+        // --- Simplified File Upload Logic ---
         const fileInput = document.getElementById('form-speaker-headshot-upload') as HTMLInputElement;
-        const openModalBtn = document.getElementById('open-file-modal-btn') as HTMLButtonElement;
         const fileNameDisplay = document.getElementById('file-name-display') as HTMLElement;
-        const fileModal = document.getElementById('file-upload-modal') as HTMLElement;
-        const closeModalBtn = fileModal?.querySelector('.modal-close-btn') as HTMLButtonElement;
-        const dragDropZone = document.getElementById('drag-drop-zone') as HTMLElement;
-        const modalBrowseBtn = document.getElementById('modal-browse-btn') as HTMLButtonElement;
-        const modalErrorMsg = document.getElementById('modal-error-message') as HTMLElement;
-
-        if (fileInput && openModalBtn && fileNameDisplay && fileModal && closeModalBtn && dragDropZone && modalBrowseBtn && modalErrorMsg) {
-            
-            const showModal = () => fileModal.classList.add('visible');
-            const hideModal = () => {
-                fileModal.classList.remove('visible');
-                dragDropZone.classList.remove('drag-over');
-                modalErrorMsg.style.display = 'none';
-            };
-
-            const handleFile = (file: File | null) => {
-                if (!file) {
-                    fileInput.value = '';
-                    fileNameDisplay.textContent = 'No file chosen';
-                    return;
-                }
-
-                modalErrorMsg.style.display = 'none';
-
-                const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-                const maxSize = 10 * 1024 * 1024; // 10 MB
-
-                if (!allowedTypes.includes(file.type)) {
-                    modalErrorMsg.textContent = 'Invalid file type. Please upload a JPG, PNG, or WEBP image.';
-                    modalErrorMsg.style.display = 'block';
-                    fileInput.value = '';
-                    return;
-                }
-
-                if (file.size > maxSize) {
-                    modalErrorMsg.textContent = 'File is too large. Maximum size is 10 MB.';
-                    modalErrorMsg.style.display = 'block';
-                    fileInput.value = '';
-                    return;
-                }
-
-                const dataTransfer = new DataTransfer();
-                dataTransfer.items.add(file);
-                fileInput.files = dataTransfer.files;
-
-                fileNameDisplay.textContent = file.name;
-                hideModal();
-                validateField(fileInput);
-            };
-
-            openModalBtn.addEventListener('click', showModal);
-            closeModalBtn.addEventListener('click', hideModal);
-            fileModal.addEventListener('click', (e) => {
-                if (e.target === fileModal) hideModal();
-            });
-            modalBrowseBtn.addEventListener('click', () => fileInput.click());
-
+        
+        if (fileInput && fileNameDisplay) {
             fileInput.addEventListener('change', () => {
-                const file = fileInput.files ? fileInput.files[0] : null;
-                handleFile(file);
-            });
-
-            dragDropZone.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                dragDropZone.classList.add('drag-over');
-            });
-            dragDropZone.addEventListener('dragleave', () => {
-                dragDropZone.classList.remove('drag-over');
-            });
-            dragDropZone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                dragDropZone.classList.remove('drag-over');
-                const file = e.dataTransfer?.files ? e.dataTransfer.files[0] : null;
-                handleFile(file);
+                if (fileInput.files && fileInput.files.length > 0) {
+                    fileNameDisplay.textContent = fileInput.files[0].name;
+                } else {
+                    fileNameDisplay.textContent = 'No file chosen';
+                }
+                // Trigger validation to show errors immediately if any
+                validateField(fileInput);
             });
         }
-        // --- End New File Upload Modal Logic ---
+        // --- End Simplified File Upload Logic ---
 
 
         const customValidation = (): boolean => {
