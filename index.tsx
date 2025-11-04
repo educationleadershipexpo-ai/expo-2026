@@ -1,4 +1,5 @@
 
+
     declare var Panzoom: any;
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -1426,17 +1427,12 @@
                 submitButton.disabled = true;
                 submitButton.textContent = 'Submitting...';
 
-                // The original URL was causing a "Failed to fetch" error, likely due to being invalid or misconfigured.
-                // This has been updated to use the working endpoint from the main contact form as a reliable alternative.
-                // The data will be sent to the "ContactInquiries" Google Sheet.
-                const googleSheetWebAppUrl = 'https://script.google.com/macros/s/AKfycbxUS76iFHL00oqCytiDjvpPfY9wONwwttdI00R6nhhoAkyED2ogZviUb3yXXRDAqAs7tg/exec';
+                // This is the dedicated endpoint for deck requests.
+                const googleSheetWebAppUrl = 'https://script.google.com/macros/s/AKfycbzcmND809zEePZzvOLxxM1GolqWM1Lrh11JV9tdprNxSgkp-u0sjlxRzqXtmjDQDtn_2Q/exec';
 
                 try {
                     const formData = new FormData(form);
-                    // The target script for the contact form expects an 'interest' field.
-                    // We'll set it here to properly categorize these submissions.
-                    formData.append('interest', 'Deck Request');
-
+                    
                     const response = await fetch(googleSheetWebAppUrl, {
                         method: 'POST',
                         body: new URLSearchParams(formData as any)
