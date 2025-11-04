@@ -1,3 +1,4 @@
+
     declare var Panzoom: any;
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -124,6 +125,17 @@
                      isValid = false;
                 } else if (value !== '' && !urlRegex.test(value)) {
                     showError(field, 'Please enter a valid website URL.');
+                    isValid = false;
+                }
+                break;
+
+            case 'form-speaker-headshot-link':
+                const googleDriveRegex = /^(https?:\/\/)?drive\.google\.com\/.+/;
+                if (value === '') {
+                    showError(field, 'A link to your professional headshot is required.');
+                    isValid = false;
+                } else if (!googleDriveRegex.test(value)) {
+                    showError(field, 'Please provide a valid Google Drive link.');
                     isValid = false;
                 }
                 break;
@@ -821,29 +833,9 @@
         const inputs: HTMLElement[] = Array.from(form.querySelectorAll('input[required], select[required], textarea[required]'));
         const day1Container = document.getElementById('session-day1-group');
         const day2Container = document.getElementById('session-day2-group');
-        const headshotInput = document.getElementById('form-speaker-headshot') as HTMLInputElement;
         const consentPromoGroup = document.getElementById('consent-promotional-group');
         const consentRecordGroup = document.getElementById('consent-recording-group');
-        const fileUploadText = form.querySelector('.file-upload-text');
 
-        headshotInput?.addEventListener('change', () => {
-            if (headshotInput.files && headshotInput.files.length > 0 && fileUploadText) {
-                const file = headshotInput.files[0];
-                const MAX_SIZE_MB = 5;
-                const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
-
-                if (file.size > MAX_SIZE_BYTES) {
-                    showError(headshotInput, `File size cannot exceed ${MAX_SIZE_MB}MB.`);
-                    fileUploadText.textContent = `File too large (max ${MAX_SIZE_MB}MB)`;
-                } else {
-                    fileUploadText.textContent = file.name;
-                    clearError(headshotInput);
-                }
-            } else if (fileUploadText) {
-                fileUploadText.textContent = 'Choose a file...';
-            }
-        });
-        
         const customValidation = (): boolean => {
             let allValid = true;
 
@@ -855,24 +847,6 @@
             } else {
                 if(day1Container) clearError(day1Container);
                 if(day2Container) clearError(day2Container);
-            }
-            
-            if (headshotInput) {
-                if (!headshotInput.files || headshotInput.files.length === 0) {
-                    showError(headshotInput, 'A professional headshot is required.');
-                    allValid = false;
-                } else {
-                    const file = headshotInput.files[0];
-                    const MAX_SIZE_MB = 5;
-                    const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
-
-                    if (file.size > MAX_SIZE_BYTES) {
-                        showError(headshotInput, `File size cannot exceed ${MAX_SIZE_MB}MB.`);
-                        allValid = false;
-                    } else {
-                        clearError(headshotInput);
-                    }
-                }
             }
 
             const promoChecked = consentPromoGroup?.querySelector('input[type="radio"]:checked');
@@ -928,7 +902,7 @@
                 // 2. IMPORTANT: Rename that sheet to exactly "SpeakerRegistrations".
                 //
                 // 3. Ensure the headers in the first row of your "SpeakerRegistrations" sheet are exactly as follows (order and hyphens matter):
-                //    Timestamp, form_source, name, job_title_organization, email, phone, linkedin_website, country, session-day1, session-day2, why_speak, bio, past_experience, consent-promotional, consent-recording
+                //    Timestamp, form_source, name, job_title_organization, email, phone, linkedin_website, country, session-day1, session-day2, why_speak, bio, headshot_link, past_experience, consent-promotional, consent-recording
                 //
                 // 4. Go to Extensions > Apps Script in your Google Sheet.
                 // 5. Ensure the script contains this line, with the correct sheet name:
@@ -940,9 +914,8 @@
                 // =========================================================================================
                 const googleSheetWebAppUrl = 'https://script.google.com/macros/s/AKfycbzaHqJGQqN1b3_EXy2TPKf4B2ACcVEwo-OmxribSVw0UkpTvR1kAnsbWOPW39myS9cN/exec';
 
-                // Prepare form data for Google Sheets (excluding the file upload)
+                // Prepare form data for Google Sheets
                 const sheetFormData = new FormData(form);
-                sheetFormData.delete('headshot'); // Google Sheets cannot handle file uploads this way.
                 
                 try {
                     const response = await fetch(googleSheetWebAppUrl, {
