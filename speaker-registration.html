@@ -195,9 +195,11 @@
                             <p style="font-size: 0.85rem; margin-top: -0.5rem; margin-bottom: 0.75rem; color: #555;">
                                 Upload 1 supported image file. Max 10 MB.
                             </p>
-                            <div class="file-upload-wrapper">
-                                <input type="file" id="form-speaker-headshot-upload" name="headshot_upload" accept="image/png, image/jpeg, image/webp" required class="file-upload-input" aria-describedby="file-name-display">
-                                <button type="button" class="btn file-upload-btn" aria-hidden="true" tabindex="-1">
+                            <!-- This input is visually hidden but functionally crucial -->
+                            <input type="file" id="form-speaker-headshot-upload" name="headshot_upload" accept="image/png, image/jpeg, image/webp" required class="visually-hidden">
+                            
+                            <div class="file-upload-ui">
+                                <button type="button" id="open-file-modal-btn" class="btn file-upload-btn">
                                     <i class="fas fa-upload"></i> Add File
                                 </button>
                                 <span id="file-name-display" class="file-name-display">No file chosen</span>
@@ -290,6 +292,35 @@
         </div>
     </footer>
     
+    <!-- File Upload Modal -->
+    <div id="file-upload-modal" class="modal-overlay">
+        <div class="modal-content file-upload-modal-content" role="dialog" aria-modal="true" aria-labelledby="file-upload-modal-title">
+            <div class="file-upload-header">
+                <h3 id="file-upload-modal-title">Insert file</h3>
+                <button class="modal-close-btn" aria-label="Close">&times;</button>
+            </div>
+            <div class="file-upload-tabs">
+                <button class="file-upload-tab active">Upload</button>
+                <button class="file-upload-tab" disabled>My Drive</button>
+                <button class="file-upload-tab" disabled>Recent</button>
+            </div>
+            <div class="file-upload-body">
+                <p class="file-upload-info">
+                    <i class="fas fa-info-circle"></i> 
+                    Upload 1 supported file. Max 10 MB. A copy of the selected file will be sent. Once submitted, files cannot be edited or removed.
+                </p>
+                <div id="drag-drop-zone" class="drag-drop-zone">
+                    <div class="drag-drop-content">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p><strong>or drag a file here</strong></p>
+                        <button type="button" id="modal-browse-btn" class="btn btn-primary">Browse</button>
+                    </div>
+                </div>
+                <div id="modal-error-message" class="error-message" style="text-align: center; margin-top: 1rem;"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- Mobile Sticky Bar -->
     <div id="mobile-sticky-bar">
         <a href="booth-registration.html" class="mobile-cta-btn"><i class="fas fa-chalkboard-user"></i><span>Booth</span></a>
