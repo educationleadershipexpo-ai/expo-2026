@@ -33,6 +33,19 @@
         }
     };
 
+    const fileToBase64 = (file: File): Promise<string> => 
+        new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => {
+                const result = reader.result as string;
+                // result is "data:image/jpeg;base64,LzlqLzRBQ...". We want to strip the prefix.
+                const base64String = result.split(',')[1];
+                resolve(base64String);
+            };
+            reader.onerror = error => reject(error);
+        });
+
     // --- Universal Real-Time Validator ---
     const validateField = (field: HTMLElement): boolean => {
         if (!field) return true;
@@ -130,14 +143,23 @@
                 }
                 break;
 
-            case 'form-speaker-headshot-link':
-                const googleDriveRegex = /^(https?:\/\/)?drive\.google\.com\/.+/;
-                if (value === '') {
-                    showError(field, 'A link to your professional headshot is required.');
+            case 'form-speaker-headshot-upload':
+                const files = input.files;
+                if (!files || files.length === 0) {
+                    showError(field, 'A professional headshot is required.');
                     isValid = false;
-                } else if (!googleDriveRegex.test(value)) {
-                    showError(field, 'Please provide a valid Google Drive link.');
-                    isValid = false;
+                } else {
+                    const file = files[0];
+                    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+                    const maxSize = 10 * 1024 * 1024; // 10 MB
+
+                    if (!allowedTypes.includes(file.type)) {
+                        showError(field, 'Invalid file type. Please upload a JPG, PNG, or WEBP image.');
+                        isValid = false;
+                    } else if (file.size > maxSize) {
+                        showError(field, 'File is too large. Maximum size is 10 MB.');
+                        isValid = false;
+                    }
                 }
                 break;
 
@@ -836,6 +858,19 @@
         const day2Container = document.getElementById('session-day2-group');
         const consentPromoGroup = document.getElementById('consent-promotional-group');
         const consentRecordGroup = document.getElementById('consent-recording-group');
+        const fileInput = document.getElementById('form-speaker-headshot-upload') as HTMLInputElement;
+        const fileNameDisplay = document.getElementById('file-name-display') as HTMLElement;
+
+        if (fileInput && fileNameDisplay) {
+            fileInput.addEventListener('change', () => {
+                if (fileInput.files && fileInput.files.length > 0) {
+                    fileNameDisplay.textContent = fileInput.files[0].name;
+                    validateField(fileInput); // Re-validate on change
+                } else {
+                    fileNameDisplay.textContent = 'No file chosen';
+                }
+            });
+        }
 
         const customValidation = (): boolean => {
             let allValid = true;
@@ -895,30 +930,26 @@
                 // =========================================================================================
                 // --- ROBUST GOOGLE SHEETS INTEGRATION FOR SPEAKERS ---
                 // =========================================================================================
-                // !! CRITICAL INSTRUCTIONS TO FIX THE ERROR !!
-                // The error "Sheet 'SpeakerRegistrations' was not found" means the Google Apps Script
-                // cannot find a sheet with that exact name. Please follow these steps carefully:
-                //
-                // 1. In your Google Sheet for speaker applications, find the sheet tab at the bottom.
-                // 2. IMPORTANT: Rename that sheet to exactly "SpeakerRegistrations".
-                //
-                // 3. Ensure the headers in the first row of your "SpeakerRegistrations" sheet are exactly as follows (order and hyphens matter):
-                //    Timestamp, form_source, name, job_title_organization, email, phone, linkedin_website, country, session-day1, session-day2, why_speak, bio, headshot_link, past_experience, consent-promotional, consent-recording
-                //
-                // 4. Go to Extensions > Apps Script in your Google Sheet.
-                // 5. Ensure the script contains this line, with the correct sheet name:
-                //    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("SpeakerRegistrations");
-                //
-                // 6. After checking the name, click Deploy > New deployment.
-                // 7. Choose "Web app", set "Who has access" to "Anyone", and click Deploy.
-                // 8. Copy the NEW Web app URL and update the 'googleSheetWebAppUrl' constant below if it has changed.
+                // !! CRITICAL INSTRUCTIONS !!
+                // 1. In your Google Sheet, rename the sheet tab to "SpeakerRegistrations".
+                // 2. Ensure the headers in the first row are exactly as follows (order matters):
+                //    Timestamp, form_source, name, job_title_organization, email, phone, linkedin_website, country, session-day1, session-day2, why_speak, bio, headshot_filename, headshot_mimetype, headshot_base64, past_experience, consent-promotional, consent-recording
+                // 3. Deploy/re-deploy your Apps Script with "Anyone" access and paste the new URL below.
                 // =========================================================================================
                 const googleSheetWebAppUrl = 'https://script.google.com/macros/s/AKfycbzaHqJGQqN1b3_EXy2TPKf4B2ACcVEwo-OmxribSVw0UkpTvR1kAnsbWOPW39myS9cN/exec';
 
-                // Prepare form data for Google Sheets
                 const sheetFormData = new FormData(form);
+                const file = fileInput.files ? fileInput.files[0] : null;
                 
                 try {
+                    if (file) {
+                        const base64String = await fileToBase64(file);
+                        sheetFormData.append('headshot_filename', file.name);
+                        sheetFormData.append('headshot_mimetype', file.type);
+                        sheetFormData.append('headshot_base64', base64String);
+                    }
+                    sheetFormData.delete('headshot_upload'); // Remove the file object before sending
+
                     const response = await fetch(googleSheetWebAppUrl, {
                         method: 'POST',
                         body: new URLSearchParams(sheetFormData as any)
@@ -927,21 +958,18 @@
                     if (response.ok) {
                         const result = await response.json();
                         if (result.result === 'success') {
-                            // The script confirmed the data was saved!
                             form.style.display = 'none';
                             successMessage.style.display = 'block';
                             window.scrollTo(0, 0);
                         } else {
-                            // The script reported an error.
                             throw new Error(result.error || 'The script returned an unknown error.');
                         }
                     } else {
-                        // The network request itself failed.
                         throw new Error(`Submission failed. Status: ${response.status}`);
                     }
                 } catch (error) {
                     console.error('Speaker Submission Error:', error);
-                    alert('Sorry, there was a problem with your application. Please check your network connection and try again. If the problem persists, contact support. Error: ' + (error as Error).message);
+                    alert('Sorry, there was a problem with your application. Please check your network and try again. Error: ' + (error as Error).message);
                     if (submitButton) {
                         submitButton.disabled = false;
                         submitButton.textContent = 'Submit Application';
@@ -1133,6 +1161,37 @@
              if (partner.customClass) {
                 img.classList.add(partner.customClass);
             }
+            
+            logoItem.appendChild(img);
+            logoGrid.appendChild(logoItem);
+        });
+    }
+
+    // --- Past Partners Page ---
+    function initializePastPartners() {
+        const logoGrid = document.getElementById('past-partners-grid');
+        if (!logoGrid) return;
+
+        const partners = [
+            { src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/University_of_Cambridge_crest.svg/1200px-University_of_Cambridge_crest.svg.png', alt: 'Cambridge University Logo' },
+            { src: 'https://upload.wikimedia.org/wikipedia/en/thumb/2/29/Harvard_shield_wreath.svg/1200px-Harvard_shield_wreath.svg.png', alt: 'Harvard University Logo' },
+            { src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a8/Microsoft_logo_%282012%29.svg/1280px-Microsoft_logo_%282012%29.svg.png', alt: 'Microsoft Logo' },
+            { src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1200px-Google_%22G%22_logo.svg.png', alt: 'Google Logo' },
+            { src: 'https://upload.wikimedia.org/wikipedia/en/thumb/5/58/Qatar_Foundation_logo.svg/1200px-Qatar_Foundation_logo.svg.png', alt: 'Qatar Foundation Logo' },
+            { src: 'https://upload.wikimedia.org/wikipedia/en/thumb/9/91/Qatar_University_logo.svg/1200px-Qatar_University_logo.svg.png', alt: 'Qatar University Logo' },
+            { src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/GE_logo.svg/1200px-GE_logo.svg.png', alt: 'General Electric Logo' },
+            { src: 'https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg', alt: 'Apple Logo' },
+        ];
+        
+        logoGrid.innerHTML = '';
+
+        partners.forEach(partner => {
+            const logoItem = document.createElement('div');
+            logoItem.className = 'logo-item';
+            
+            const img = document.createElement('img');
+            img.src = partner.src;
+            img.alt = partner.alt;
             
             logoItem.appendChild(img);
             logoGrid.appendChild(logoItem);
@@ -1487,6 +1546,7 @@
     initializeDeckRequestForm();
     initializeEarlyBirdCountdown();
     initializeHomePartners();
+    initializePastPartners();
     initializeAgendaTabs();
     initializeFloorPlan();
     initializeExposureTabs();
