@@ -2594,7 +2594,7 @@ a.contact-email:hover {
 .consent-radio-item label {
     margin: 0;
     font-weight: normal;
-    top: 110px;
+    margin-top: 6px;
 }
 
 
