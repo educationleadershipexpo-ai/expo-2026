@@ -1630,8 +1630,8 @@ section {
 
 #floor-plan-map {
     display: grid;
-    grid-template-columns: repeat(12, 1fr);
-    gap: 5px;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 10px;
     position: relative;
 }
 
@@ -3389,10 +3389,10 @@ a.contact-email:hover {
 }
 .card-top-mascot {
     position: absolute;
-    width: 240px;
+    width: 200px;
     height: auto;
-    top: -190px;
-    left: 60%;
+    top: -210px;
+    left: 50%;
     transform: translateX(-50%);
     z-index: 5;
     pointer-events: none;
@@ -3519,15 +3519,14 @@ position: absolute;
 }
 
 .contact-faq-mascot {
-   position: absolute;
-    width: 200px;
+    position: absolute;
+    width: 180px;
     height: auto;
-    top: -175px;
-    left: -1%;
-    transform: translateX(-50%);
+    top: -160px;
+    left: -60px;
+    transform: scaleX(-1);
     z-index: 5;
     pointer-events: none;
-    transform: scaleX(-1);
 }
 
 @media (max-width: 1200px) {
@@ -3635,4 +3634,16 @@ position: absolute;
         width: 100%;
         text-align: center;
     }
+}
+
+/* Past Partners Page Logo Grid */
+#past-partners-grid .logo-item img {
+    max-height: 80px;
+    filter: none;
+    opacity: 1;
+    transition: transform 0.3s ease;
+}
+
+#past-partners-grid .logo-item img:hover {
+    transform: scale(1.05);
 }
