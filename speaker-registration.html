@@ -191,22 +191,18 @@
                             <div class="error-message"></div>
                         </div>
                          <div class="form-group">
-                            <label for="form-speaker-headshot-link">Professional Headshot (Google Drive Link) *</label>
+                            <label for="form-speaker-headshot-upload">Professional Headshot Upload *</label>
                             <p style="font-size: 0.85rem; margin-top: -0.5rem; margin-bottom: 0.75rem; color: #555;">
-                                1. Click the button to open Google Drive.<br>
-                                2. Upload your headshot.<br>
-                                3. Right-click the file, select "Share" &gt; "Share", and set "General access" to "Anyone with the link".<br>
-                                4. Click "Copy link" and paste it below.
+                                Upload 1 supported image file. Max 10 MB.
                             </p>
-                            <div style="display: flex; gap: 1rem; align-items: flex-start;">
-                                 <div style="flex-grow: 1;">
-                                    <input type="text" id="form-speaker-headshot-link" name="headshot_link" placeholder="Paste Google Drive link here..." required>
-                                    <div class="error-message"></div>
-                                 </div>
-                                 <a href="https://drive.google.com/drive/my-drive" target="_blank" class="btn btn-primary" style="white-space: nowrap; padding: 12px 20px;">
-                                    <i class="fab fa-google-drive" style="margin-right: 0.5rem;"></i> Open Drive
-                                 </a>
+                            <div class="file-upload-wrapper">
+                                <input type="file" id="form-speaker-headshot-upload" name="headshot_upload" accept="image/png, image/jpeg, image/webp" required class="file-upload-input" aria-describedby="file-name-display">
+                                <button type="button" class="btn file-upload-btn" aria-hidden="true" tabindex="-1">
+                                    <i class="fas fa-upload"></i> Add File
+                                </button>
+                                <span id="file-name-display" class="file-name-display">No file chosen</span>
                             </div>
+                            <div class="error-message"></div>
                         </div>
                         <div class="form-group">
                             <label for="form-speaker-experience">Past Speaking Experience (if any)</label>
